@@ -1,0 +1,75 @@
+<html>
+  <head>
+    <title>nx-user-generated-objects</title>
+    <link
+      href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="p-4">
+    <main>
+      <section class="my-4">{{ objects }}</section>
+      <section class="my-4">
+        <form>
+          <button
+            type="submit"
+            class="p-2 px-4 shadow rounded bg-blue-200"
+            @click.prevent="createObject"
+          >
+            post a new object
+          </button>
+        </form>
+      </section>
+    </main>
+    <!-- scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.12/dist/vue.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.2.4/firebase.js"></script>
+    <!-- <script src="https://www.gstatic.com/firebasejs/8.2.4/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.2.4/firebase-database.js"></script> -->
+    <script>
+      const firebaseConfig = {
+        apiKey: "AIzaSyAiMqEr6SpjN61sLKFUd3NndRFXV7m_X70", // Auth / General Use
+        appId: "1:837039980734:web:200f93d50c52a11a9cdeef", // General Use
+        projectId: "nx-user-generated-objects", // General Use
+        authDomain: "localhost", // Auth with popup/redirect
+        databaseURL:
+          "https://nx-user-generated-objects-default-rtdb.europe-west1.firebasedatabase.app/", // Realtime Database
+      };
+      const project = firebase.initializeApp(firebaseConfig);
+      const database = firebase.database();
+      const refObjects = database.ref("/objects");
+      new Vue({
+        el: "main",
+        data() {
+          return {
+            objects: [],
+            user: null,
+          };
+        },
+        created() {
+          refObjects.on("value", (snapshot) => {
+            this.objects = snapshot.val();
+          });
+        },
+        methods: {
+          createObject() {
+            refObjects.push(
+              {
+                user_id: "TBD",
+                scene_id: "TBD",
+                object_id: "TBD",
+                matrix: "TBD",
+              },
+              (error) => {
+                if (error) {
+                  console.log(error);
+                }
+              }
+            );
+            console.log("TBD");
+          },
+        },
+      });
+    </script>
+  </body>
+</html>

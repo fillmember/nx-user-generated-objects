@@ -7,7 +7,7 @@
     />
   </head>
   <body class="p-4">
-    <main>
+    <main class="container mx-auto border p-8">
       <section class="my-4">
         <h2 class="text-lg mb-2" v-if="user">
           Anonymous User: <span class="text-sm">{{ user.uid }}</span>
@@ -19,7 +19,7 @@
       <section class="my-4">
         <h2 class="text-lg mb-2">Objects</h2>
         <span class="italic" v-if="!objects">no data</span>
-        <table class="text-xs" v-if="objects">
+        <table class="w-full text-xs" v-if="objects">
           <tr class="text-left border-b">
             <th>uid</th>
             <th>scene_id</th>
@@ -49,14 +49,7 @@
             class="p-2 px-4 shadow rounded bg-blue-200"
             @click.prevent="createObject"
           >
-            post a new object
-          </button>
-          <button
-            type="submit"
-            class="p-2 px-4 shadow rounded bg-blue-200"
-            @click.prevent="clearAll"
-          >
-            clear all
+            new object
           </button>
         </form>
       </section>
@@ -64,8 +57,6 @@
     <!-- scripts -->
     <script src="https://cdn.jsdelivr.net/npm/vue@2.6.12/dist/vue.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.2.4/firebase.js"></script>
-    <!-- <script src="https://www.gstatic.com/firebasejs/8.2.4/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.2.4/firebase-database.js"></script> -->
     <script>
       const firebaseConfig = {
         apiKey: "AIzaSyAiMqEr6SpjN61sLKFUd3NndRFXV7m_X70", // Auth / General Use
@@ -89,9 +80,6 @@
           };
         },
         created() {
-          refObjects.on("value", (snapshot) => {
-            this.objects = snapshot.val();
-          });
           auth.signInAnonymously().catch((error) => {
             this.errorAuth = error;
           });
@@ -99,15 +87,15 @@
             if (user) {
               this.user = user;
               // sign in
+              refObjects.on("value", (snapshot) => {
+                this.objects = snapshot.val();
+              });
             } else {
               // sign out
             }
           });
         },
         methods: {
-          clearAll() {
-            refObjects.set(null);
-          },
           deleteObject(key) {
             database.ref(`objects/${key}`).set(null);
           },
@@ -118,19 +106,6 @@
                 scene_id: ["yee_land", "test"][Math.random() < 0.5 ? 0 : 1],
                 object_id: ["yee_dog", "dami"][Math.random() < 0.5 ? 0 : 1],
                 matrix: [
-                  Math.random(),
-                  Math.random(),
-                  Math.random(),
-                  Math.random(),
-                  Math.random(),
-                  Math.random(),
-                  Math.random(),
-                  Math.random(),
-                  Math.random(),
-                  Math.random(),
-                  Math.random(),
-                  Math.random(),
-                  Math.random(),
                   Math.random(),
                   Math.random(),
                   Math.random(),

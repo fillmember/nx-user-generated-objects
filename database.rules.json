@@ -1,27 +1,27 @@
 {
   "rules": {
     "objects": {
-      ".read": "auth != null",
       "$obj_id": {
-        ".write": "newData.exists() || (data.child('user_id').val() == auth.uid)",
-        ".validate": "newData.exists() && newData.hasChildren(['scene_id','user_id','object_id','matrix','timestamp'])",
-        "scene_id": {
-          ".validate": "newData.isString() && newData.val().length > 0"
-        },
-        "user_id": {
-          ".validate": "newData.val() == auth.uid"
-        },
-        "object_id": {
-          ".validate": "newData.isString() && newData.val().length > 0"
-        },
-        "matrix": {
-          ".validate": "newData.isString() && newData.val().length > 0"
-        },
-        "timestamp": {
-          ".validate": "newData.val() < now"
-        },
-        "$other": {
-          ".validate": false
+        ".read": "auth != null",
+        "$scene_id": {
+          ".read": "auth != null",
+          ".write": "newData.exists() || (data.child('user_id').val() == auth.uid)",
+          ".validate": "newData.exists() && newData.hasChildren(['user_id','object_id','matrix','timestamp'])",
+          "user_id": {
+            ".validate": "newData.val() == auth.uid"
+          },
+          "object_id": {
+            ".validate": "newData.isString() && newData.val().length > 0"
+          },
+          "matrix": {
+            ".validate": "newData.isString() && newData.val().length > 0"
+          },
+          "timestamp": {
+            ".validate": "newData.val() < now"
+          },
+          "$other": {
+            ".validate": false
+          }
         }
       }
     }

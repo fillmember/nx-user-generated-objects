@@ -12,14 +12,32 @@
         <h2 class="text-lg mb-2" v-if="user">
           Anonymous User: <span class="text-sm">{{ user.uid }}</span>
         </h2>
-        <div class="text-red-600 my-2" v-if="errorAuth">
+        <!-- <div class="text-red-600 my-2" v-if="errorAuth">
           {{ errorAuth.message }}
+        </div> -->
+      </section>
+      <section class="my-4" v-if="user">
+        <h2 class="text-lg mb-2">Current Scene: {{scene.current.value}}</h2>
+        <div class="grid grid-cols-4 gap-2">
+          <label v-for="sceneOption in scene.list">
+            <input
+              type="radio"
+              name="scene"
+              :value="sceneOption"
+              v-model="scene.current.value"
+            />
+            {{sceneOption}}
+          </label>
         </div>
       </section>
-      <section class="my-4">
-        <h2 class="text-lg mb-2">Objects</h2>
-        <span class="italic" v-if="!objects">no data</span>
-        <table class="w-full text-xs" v-if="objects">
+      <section class="my-4" v-if="scene.current.value">
+        <h2 class="text-lg mb-2">Objects in {{scene.current.value}}</h2>
+        <div class="italic">
+          <template v-if="!userGeneratedObjects.list.value">
+            no data yet
+          </template>
+        </div>
+        <table class="w-full text-xs" v-if="userGeneratedObjects.list.value">
           <tr class="text-left border-b">
             <th>uid</th>
             <th>scene_id</th>
@@ -28,26 +46,29 @@
             <th>matrix</th>
             <th>actions</th>
           </tr>
-          <tr v-for="(value,key) in objects">
+          <tr v-for="(value,key) in userGeneratedObjects.list.value">
             <td>{{key}}</td>
             <td>{{value.scene_id}}</td>
             <td>{{value.object_id}}</td>
             <td>{{value.user_id}}</td>
             <td><div class="truncate w-20">{{value.matrix}}</div></td>
             <td>
-              <button class="underline" @click.prevent="deleteObject(key)">
+              <button
+                class="underline"
+                @click="userGeneratedObjects.delete(key)"
+              >
                 delete
               </button>
             </td>
           </tr>
         </table>
       </section>
-      <section class="my-4">
+      <section class="my-4 border-t pt-4" v-if="scene.current.value">
         <form class="grid grid-cols-4 gap-2">
           <button
-            type="submit"
+            type="button"
             class="p-2 px-4 shadow rounded bg-blue-200"
-            @click.prevent="createObject"
+            @click="userGeneratedObjects.add"
           >
             new object
           </button>
@@ -55,7 +76,7 @@
       </section>
     </main>
     <!-- scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.12/dist/vue.js"></script>
+    <script src="https://unpkg.com/vue@next"></script>
     <script src="https://www.gstatic.com/firebasejs/8.2.4/firebase.js"></script>
     <script>
       const firebaseConfig = {
@@ -66,61 +87,82 @@
         databaseURL:
           "https://nx-user-generated-objects-default-rtdb.europe-west1.firebasedatabase.app/", // Realtime Database
       };
-      const project = firebase.initializeApp(firebaseConfig);
-      const database = firebase.database();
-      const auth = firebase.auth();
-      const refObjects = database.ref("/objects");
-      new Vue({
-        el: "main",
-        data() {
-          return {
-            objects: null,
-            user: null,
-            errorAuth: null,
-          };
-        },
-        created() {
-          auth.signInAnonymously().catch((error) => {
-            this.errorAuth = error;
+      Vue.createApp({
+        setup() {
+          // Firebase
+          const project = firebase.initializeApp(firebaseConfig);
+          // User
+          const auth = firebase.auth();
+          const user = Vue.ref(null);
+          Vue.onBeforeMount(() => {
+            auth.signInAnonymously().catch((error) => {});
+            auth.onAuthStateChanged((userData) => {
+              if (userData) {
+                user.value = userData;
+              }
+            });
           });
-          auth.onAuthStateChanged((user) => {
-            if (user) {
-              this.user = user;
-              // sign in
-              refObjects.on("value", (snapshot) => {
-                this.objects = snapshot.val();
-              });
-            } else {
-              // sign out
+          // Scene
+          const sceneList = ["yeeLand", "miLand", "stage1", "stage2"];
+          const scene = {
+            list: sceneList,
+            current: Vue.ref(sceneList[0]),
+          };
+          // Objects from db
+          const address = Vue.computed(
+            () => `/${["objects", scene.current.value].join("/")}`
+          );
+          const database = firebase.database();
+          const userGeneratedObjectList = Vue.ref(null);
+          const onData = (snapshot) => {
+            userGeneratedObjectList.value = snapshot.val();
+          };
+          const dbRef = Vue.computed(() => {
+            if (!scene.current.value) return null;
+            const ref = database.ref(address.value);
+            ref.on("value", onData);
+            return ref;
+          });
+          // unsubscribe old database ref
+          Vue.watch(dbRef, (newDBRef, oldDBRef) => {
+            if (oldDBRef) {
+              oldDBRef.off("value", onData);
             }
           });
-        },
-        methods: {
-          deleteObject(key) {
-            database.ref(`objects/${key}`).set(null);
-          },
-          createObject() {
-            refObjects.push(
-              {
-                user_id: this.user.uid,
-                scene_id: ["yee_land", "test"][Math.random() < 0.5 ? 0 : 1],
-                object_id: ["yee_dog", "dami"][Math.random() < 0.5 ? 0 : 1],
-                matrix: [
-                  Math.random(),
-                  Math.random(),
-                  Math.random(),
-                ].toString(),
-                timestamp: Date.now(),
-              },
-              (error) => {
-                if (error) {
-                  console.log(error);
+          const userGeneratedObjects = {
+            list: userGeneratedObjectList,
+            add() {
+              if (!dbRef.value) return;
+              dbRef.value.push(
+                {
+                  user_id: user.value.uid,
+                  object_id: "test",
+                  matrix: [
+                    Math.random(),
+                    Math.random(),
+                    Math.random(),
+                  ].toString(),
+                  timestamp: Date.now(),
+                },
+                (error) => {
+                  if (error) {
+                    console.log(error);
+                  }
                 }
-              }
-            );
-          },
+              );
+            },
+            delete(key) {
+              if (!dbRef.value) return;
+              database.ref(address.value + "/" + key).remove();
+            },
+          };
+          return {
+            scene,
+            user,
+            userGeneratedObjects,
+          };
         },
-      });
+      }).mount("main");
     </script>
   </body>
 </html>

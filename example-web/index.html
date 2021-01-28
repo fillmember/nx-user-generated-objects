@@ -40,7 +40,6 @@
         <table class="w-full text-xs" v-if="userGeneratedObjects.list.value">
           <tr class="text-left border-b">
             <th>uid</th>
-            <th>scene_id</th>
             <th>object_id</th>
             <th>user_id</th>
             <th>matrix</th>
@@ -48,7 +47,6 @@
           </tr>
           <tr v-for="(value,key) in userGeneratedObjects.list.value">
             <td>{{key}}</td>
-            <td>{{value.scene_id}}</td>
             <td>{{value.object_id}}</td>
             <td>{{value.user_id}}</td>
             <td><div class="truncate w-20">{{value.matrix}}</div></td>
@@ -137,12 +135,7 @@
                 {
                   user_id: user.value.uid,
                   object_id: "test",
-                  matrix: [
-                    Math.random(),
-                    Math.random(),
-                    Math.random(),
-                  ].toString(),
-                  timestamp: Date.now(),
+                  matrix: [Math.random()].toString(),
                 },
                 (error) => {
                   if (error) {

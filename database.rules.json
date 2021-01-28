@@ -3,7 +3,7 @@
     "objects": {
       ".read": "auth != null",
       "$obj_id": {
-        ".write": "newData.exists() || (data.child('user_id').val() == auth.uid)",
+        ".write": "data.child('user_id').val() == auth.uid",
         ".validate": "newData.exists() && newData.hasChildren(['scene_id','user_id','object_id','matrix','timestamp'])",
         "scene_id": {
           ".validate": "newData.isString() && newData.val().length > 0"

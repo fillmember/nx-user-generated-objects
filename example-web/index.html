@@ -26,6 +26,7 @@
             <th>object_id</th>
             <th>user_id</th>
             <th>matrix</th>
+            <th>actions</th>
           </tr>
           <tr v-for="(value,key) in objects">
             <td>{{key}}</td>
@@ -33,6 +34,11 @@
             <td>{{value.object_id}}</td>
             <td>{{value.user_id}}</td>
             <td><div class="truncate w-20">{{value.matrix}}</div></td>
+            <td>
+              <button class="underline" @click.prevent="deleteObject(key)">
+                delete
+              </button>
+            </td>
           </tr>
         </table>
       </section>
@@ -100,7 +106,10 @@
         },
         methods: {
           clearAll() {
-            refObjects.set({});
+            refObjects.set(null);
+          },
+          deleteObject(key) {
+            database.ref(`objects/${key}`).set(null);
           },
           createObject() {
             refObjects.push(
@@ -126,6 +135,7 @@
                   Math.random(),
                   Math.random(),
                 ].toString(),
+                timestamp: Date.now(),
               },
               (error) => {
                 if (error) {

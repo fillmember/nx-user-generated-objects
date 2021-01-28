@@ -1,11 +1,10 @@
 {
   "rules": {
-    ".read": true,
-    ".write": "auth != null",
     "objects": {
-      ".read": true,
+      ".read": "auth != null",
       "$obj_id": {
-        ".validate": "newData.hasChildren(['scene_id','user_id','object_id','matrix'])",
+        ".write": "newData.exists() || (data.child('user_id').val() == auth.uid)",
+        ".validate": "newData.exists() && newData.hasChildren(['scene_id','user_id','object_id','matrix','timestamp'])",
         "scene_id": {
           ".validate": "newData.isString() && newData.val().length > 0"
         },
@@ -17,6 +16,9 @@
         },
         "matrix": {
           ".validate": "newData.isString() && newData.val().length > 0"
+        },
+        "timestamp": {
+          ".validate": "newData.val() < now"
         },
         "$other": {
           ".validate": false

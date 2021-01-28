@@ -3,7 +3,7 @@ import * as admin from "firebase-admin";
 
 admin.initializeApp();
 
-const { db = {} } = functions.config();
+const {db = {}} = functions.config();
 
 const maximumObjectCount = db.maxRecordCount || 2000;
 export const truncate = functions.database.ref("/objects").onWrite((change) => {

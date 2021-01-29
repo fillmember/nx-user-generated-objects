@@ -53,9 +53,13 @@
             <td>
               <button
                 class="underline mx-1"
-                @click="userGeneratedObjects.loadAllDetail(key)"
+                @click="userGeneratedObjects.toggleWatch(key)"
               >
-                detail
+                <template
+                  v-if="userGeneratedObjects.watchList.value.indexOf(key) > -1"
+                  >unwatch</template
+                >
+                <template v-else>watch</template>
               </button>
               <button
                 class="underline mx-2"
@@ -111,11 +115,10 @@
           const sceneList = ["yeeLand", "miLand", "stage1", "stage2"];
           const scene = {
             list: sceneList,
-            current: Vue.ref(null),
+            current: Vue.ref("miLand"),
           };
           // Objects from db
           const userGeneratedObjectList = Vue.shallowRef({});
-          const userGeneratedObjectDetail = Vue.shallowRef({});
           const addressMatrix = useRefAddress(
             "userGeneratedObjects",
             "matrix",
@@ -135,8 +138,23 @@
               userGeneratedObjectList.value = snapshot.val();
             }
           );
+          //
+          const userGeneratedObjectDetail = Vue.ref({});
+          const watchList = Vue.shallowRef([]);
+          const onDetailData = (snapshot) => {
+            userGeneratedObjectDetail.value[snapshot.key] = snapshot.val();
+          };
+          const watchingDBRefs = Vue.computed(() =>
+            Vue.unref(watchList).map((key) => Vue.unref(dbDetailRef).child(key))
+          );
+          Vue.watch(watchingDBRefs, (newDBRefs, oldDBRefs) => {
+            newDBRefs.forEach((dbRef) => dbRef.on("value", onDetailData));
+            oldDBRefs.forEach((dbRef) => dbRef.off("value", onDetailData));
+          });
+          //
           const userGeneratedObjects = {
             list: userGeneratedObjectList,
+            watchList: watchList,
             detail: userGeneratedObjectDetail,
             add() {
               if (!Vue.unref(dbMatrixRef)) return;
@@ -153,21 +171,18 @@
                       matrix: [Math.random()].toString(),
                     })
                     .then(() => key)
-                )
-                .then((key) => {
-                  userGeneratedObjectDetail.value[key] = detail;
-                  Vue.triggerRef(userGeneratedObjectDetail);
-                });
+                );
             },
-            loadAllDetail(key) {
-              Vue.unref(dbDetailRef)
-                .child(key)
-                .get()
-                .then((snapshot) => {
-                  const data = snapshot.val();
-                  userGeneratedObjectDetail.value[key] = data;
-                  Vue.triggerRef(userGeneratedObjectDetail);
-                });
+            toggleWatch(key) {
+              const list = Vue.unref(watchList);
+              const isWatching = list.indexOf(key) > -1;
+              if (isWatching) {
+                watchList.value = Vue.unref(watchList)
+                  .map((v) => (v === key ? null : v))
+                  .filter(Boolean);
+              } else {
+                watchList.value = [...list, key];
+              }
             },
             delete(key) {
               [dbMatrixRef, dbDetailRef]

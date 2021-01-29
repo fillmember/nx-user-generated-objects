@@ -40,19 +40,25 @@
         <table class="w-full text-xs" v-if="userGeneratedObjects.list.value">
           <tr class="text-left border-b">
             <th>uid</th>
+            <th>matrix</th>
             <th>object_id</th>
             <th>user_id</th>
-            <th>matrix</th>
             <th>actions</th>
           </tr>
           <tr v-for="(value,key) in userGeneratedObjects.list.value">
             <td>{{key}}</td>
-            <td>{{value.object_id}}</td>
-            <td>{{value.user_id}}</td>
             <td><div class="truncate w-20">{{value.matrix}}</div></td>
+            <td>{{ userGeneratedObjects.detail.value[key]?.object_id }}</td>
+            <td>{{ userGeneratedObjects.detail.value[key]?.user_id }}</td>
             <td>
               <button
-                class="underline"
+                class="underline mx-1"
+                @click="userGeneratedObjects.loadAllDetail(key)"
+              >
+                detail
+              </button>
+              <button
+                class="underline mx-2"
                 @click="userGeneratedObjects.delete(key)"
               >
                 delete
@@ -76,6 +82,7 @@
     <!-- scripts -->
     <script src="https://unpkg.com/vue@next"></script>
     <script src="https://www.gstatic.com/firebasejs/8.2.4/firebase.js"></script>
+    <script src="./utils.js"></script>
     <script>
       const firebaseConfig = {
         apiKey: "AIzaSyAiMqEr6SpjN61sLKFUd3NndRFXV7m_X70", // Auth / General Use
@@ -104,49 +111,69 @@
           const sceneList = ["yeeLand", "miLand", "stage1", "stage2"];
           const scene = {
             list: sceneList,
-            current: Vue.ref(sceneList[0]),
+            current: Vue.ref(null),
           };
           // Objects from db
-          const address = Vue.computed(
-            () => `/${["objects", scene.current.value].join("/")}`
+          const userGeneratedObjectList = Vue.shallowRef({});
+          const userGeneratedObjectDetail = Vue.shallowRef({});
+          const addressMatrix = useRefAddress(
+            "userGeneratedObjects",
+            "matrix",
+            scene.current
+          );
+          const addressDetail = useRefAddress(
+            "userGeneratedObjects",
+            "detail",
+            scene.current
           );
           const database = firebase.database();
-          const userGeneratedObjectList = Vue.ref(null);
-          const onData = (snapshot) => {
-            userGeneratedObjectList.value = snapshot.val();
-          };
-          const dbRef = Vue.computed(() => {
-            if (!scene.current.value) return null;
-            const ref = database.ref(address.value);
-            ref.on("value", onData);
-            return ref;
-          });
-          // unsubscribe old database ref
-          Vue.watch(dbRef, (newDBRef, oldDBRef) => {
-            if (oldDBRef) {
-              oldDBRef.off("value", onData);
+          const dbDetailRef = useRefDatabaseRef(database, addressDetail);
+          const dbMatrixRef = useRefDatabaseRef(
+            database,
+            addressMatrix,
+            (snapshot) => {
+              userGeneratedObjectList.value = snapshot.val();
             }
-          });
+          );
           const userGeneratedObjects = {
             list: userGeneratedObjectList,
+            detail: userGeneratedObjectDetail,
             add() {
-              if (!dbRef.value) return;
-              dbRef.value.push(
-                {
-                  user_id: user.value.uid,
-                  object_id: "test",
-                  matrix: [Math.random()].toString(),
-                },
-                (error) => {
-                  if (error) {
-                    console.log(error);
-                  }
-                }
-              );
+              if (!Vue.unref(dbMatrixRef)) return;
+              const detail = {
+                user_id: user.value.uid,
+                object_id: "test",
+              };
+              Vue.unref(dbDetailRef)
+                .push(detail)
+                .then(({ key }) =>
+                  dbMatrixRef.value
+                    .child(key)
+                    .set({
+                      matrix: [Math.random()].toString(),
+                    })
+                    .then(() => key)
+                )
+                .then((key) => {
+                  userGeneratedObjectDetail.value[key] = detail;
+                  Vue.triggerRef(userGeneratedObjectDetail);
+                });
+            },
+            loadAllDetail(key) {
+              Vue.unref(dbDetailRef)
+                .child(key)
+                .get()
+                .then((snapshot) => {
+                  const data = snapshot.val();
+                  userGeneratedObjectDetail.value[key] = data;
+                  Vue.triggerRef(userGeneratedObjectDetail);
+                });
             },
             delete(key) {
-              if (!dbRef.value) return;
-              database.ref(address.value + "/" + key).remove();
+              [dbMatrixRef, dbDetailRef]
+                .map(Vue.unref)
+                .map((dbRef) => dbRef.child(key))
+                .forEach((child) => child.remove());
             },
           };
           return {

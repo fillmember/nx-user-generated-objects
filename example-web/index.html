@@ -1,31 +1,18 @@
 <html>
   <head>
     <title>nx-user-generated-objects</title>
-    <link
-      href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css"
-      rel="stylesheet"
-    />
+    <link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet" />
   </head>
   <body class="p-4">
     <main class="container mx-auto border p-8">
       <section class="my-4">
-        <h2 class="text-lg mb-2" v-if="user">
-          Anonymous User: <span class="text-sm">{{ user.uid }}</span>
-        </h2>
-        <!-- <div class="text-red-600 my-2" v-if="errorAuth">
-          {{ errorAuth.message }}
-        </div> -->
+        <h2 class="text-lg mb-2" v-if="user">Anonymous User: <span class="text-sm">{{ user.uid }}</span></h2>
       </section>
       <section class="my-4" v-if="user">
         <h2 class="text-lg mb-2">Current Scene: {{scene.current.value}}</h2>
         <div class="grid grid-cols-4 gap-2">
           <label v-for="sceneOption in scene.list">
-            <input
-              type="radio"
-              name="scene"
-              :value="sceneOption"
-              v-model="scene.current.value"
-            />
+            <input type="radio" name="scene" :value="sceneOption" v-model="scene.current.value" />
             {{sceneOption}}
           </label>
         </div>
@@ -33,9 +20,7 @@
       <section class="my-4" v-if="scene.current.value">
         <h2 class="text-lg mb-2">Objects in {{scene.current.value}}</h2>
         <div class="italic">
-          <template v-if="!userGeneratedObjects.list.value">
-            no data yet
-          </template>
+          <template v-if="!userGeneratedObjects.list.value"> no data yet </template>
         </div>
         <table class="w-full text-xs" v-if="userGeneratedObjects.list.value">
           <tr class="text-left border-b">
@@ -51,35 +36,18 @@
             <td>{{ userGeneratedObjects.detail.value[key]?.object_id }}</td>
             <td>{{ userGeneratedObjects.detail.value[key]?.user_id }}</td>
             <td>
-              <button
-                class="underline mx-1"
-                @click="userGeneratedObjects.toggleWatch(key)"
-              >
-                <template
-                  v-if="userGeneratedObjects.watchList.value.indexOf(key) > -1"
-                  >unwatch</template
-                >
+              <button class="underline mx-1" @click="userGeneratedObjects.toggleWatch(key)">
+                <template v-if="userGeneratedObjects.watchList.value.indexOf(key) > -1">unwatch</template>
                 <template v-else>watch</template>
               </button>
-              <button
-                class="underline mx-2"
-                @click="userGeneratedObjects.delete(key)"
-              >
-                delete
-              </button>
+              <button class="underline mx-2" @click="userGeneratedObjects.delete(key)">delete</button>
             </td>
           </tr>
         </table>
       </section>
       <section class="my-4 border-t pt-4" v-if="scene.current.value">
         <form class="grid grid-cols-4 gap-2">
-          <button
-            type="button"
-            class="p-2 px-4 shadow rounded bg-blue-200"
-            @click="userGeneratedObjects.add"
-          >
-            new object
-          </button>
+          <button type="button" class="p-2 px-4 shadow rounded bg-blue-200" @click="userGeneratedObjects.add">new object</button>
         </form>
       </section>
     </main>
@@ -93,8 +61,7 @@
         appId: "1:837039980734:web:200f93d50c52a11a9cdeef", // General Use
         projectId: "nx-user-generated-objects", // General Use
         authDomain: "localhost", // Auth with popup/redirect
-        databaseURL:
-          "https://nx-user-generated-objects-default-rtdb.europe-west1.firebasedatabase.app/", // Realtime Database
+        databaseURL: "https://nx-user-generated-objects-default-rtdb.europe-west1.firebasedatabase.app/", // Realtime Database
       };
       Vue.createApp({
         setup() {
@@ -119,34 +86,20 @@
           };
           // Objects from db
           const userGeneratedObjectList = Vue.shallowRef({});
-          const addressMatrix = useRefAddress(
-            "userGeneratedObjects",
-            "matrix",
-            scene.current
-          );
-          const addressDetail = useRefAddress(
-            "userGeneratedObjects",
-            "detail",
-            scene.current
-          );
+          const addressMatrix = useRefAddress("userGeneratedObjects", "matrix", scene.current);
+          const addressDetail = useRefAddress("userGeneratedObjects", "detail", scene.current);
           const database = firebase.database();
           const dbDetailRef = useRefDatabaseRef(database, addressDetail);
-          const dbMatrixRef = useRefDatabaseRef(
-            database,
-            addressMatrix,
-            (snapshot) => {
-              userGeneratedObjectList.value = snapshot.val();
-            }
-          );
+          const dbMatrixRef = useRefDatabaseRef(database, addressMatrix, (snapshot) => {
+            userGeneratedObjectList.value = snapshot.val();
+          });
           //
           const userGeneratedObjectDetail = Vue.ref({});
-          const watchList = Vue.shallowRef([]);
+          const watchList = Vue.ref([]);
           const onDetailData = (snapshot) => {
             userGeneratedObjectDetail.value[snapshot.key] = snapshot.val();
           };
-          const watchingDBRefs = Vue.computed(() =>
-            Vue.unref(watchList).map((key) => Vue.unref(dbDetailRef).child(key))
-          );
+          const watchingDBRefs = Vue.computed(() => Vue.unref(watchList).map((key) => Vue.unref(dbDetailRef).child(key)));
           Vue.watch(watchingDBRefs, (newDBRefs, oldDBRefs) => {
             newDBRefs.forEach((dbRef) => dbRef.on("value", onDetailData));
             oldDBRefs.forEach((dbRef) => dbRef.off("value", onDetailData));
@@ -158,20 +111,20 @@
             detail: userGeneratedObjectDetail,
             add() {
               if (!Vue.unref(dbMatrixRef)) return;
-              const detail = {
+              const { matrix, ...detail } = generateRandomObject({
                 user_id: user.value.uid,
-                object_id: "test",
-              };
+              });
               Vue.unref(dbDetailRef)
                 .push(detail)
                 .then(({ key }) =>
                   dbMatrixRef.value
                     .child(key)
-                    .set({
-                      matrix: [Math.random()].toString(),
-                    })
+                    .set({ matrix })
                     .then(() => key)
-                );
+                )
+                .then((key) => {
+                  userGeneratedObjectDetail.value[key] = detail;
+                });
             },
             toggleWatch(key) {
               const list = Vue.unref(watchList);
